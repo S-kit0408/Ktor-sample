@@ -4,8 +4,8 @@ val ktor_version: String by project
 
 plugins {
     kotlin("jvm") version "2.2.20"
-    id("io.ktor.plugin") version "3.3.0"
     kotlin("plugin.serialization") version "2.2.20"
+    id("io.ktor.plugin") version "3.3.0"
 }
 
 group = "com.example"
@@ -28,10 +28,31 @@ dependencies {
     implementation("io.ktor:ktor-server-status-pages:$ktor_version")
     implementation("io.ktor:ktor-server-config-yaml:$ktor_version")
     implementation("io.ktor:ktor-server-cors-jvm:$ktor_version")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
+    implementation("io.github.cdimascio:dotenv-kotlin:6.4.1")
+
+    // Serialization
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.1")
+
+    // Database
+    implementation("org.jetbrains.exposed:exposed-core:0.60.0")
+    implementation("org.jetbrains.exposed:exposed-dao:0.60.0")
+    implementation("org.jetbrains.exposed:exposed-jdbc:0.60.0")
+    implementation("org.jetbrains.exposed:exposed-kotlin-datetime:0.60.0")
+    implementation("org.postgresql:postgresql:42.7.4")
+    implementation("com.zaxxer:HikariCP:6.2.1")
+
+    // Dependency Injection
+    implementation("io.insert-koin:koin-ktor:4.1.0")
+    implementation("io.insert-koin:koin-logger-slf4j:4.1.0")
+//    implementation("io.insert-koin:koin-logger-slf4j:4.0.2")
+//    implementation("io.insert-koin:koin-logger-slf4j:3.5.6")
+
     //Logging
     implementation("ch.qos.logback:logback-classic:$logback_version")
+
     //Test
     testImplementation("io.ktor:ktor-server-test-host:$ktor_version")
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version")
+    testImplementation("io.insert-koin:koin-test:4.1.0")
 }
