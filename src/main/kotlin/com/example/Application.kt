@@ -1,10 +1,14 @@
 package com.example
 
 import com.example.infrastructure.database.DatabaseFactory
-import com.example.infrastructure.config.EnvConfig
+import com.example.infrastructure.database.FlywayMigration
+import com.example.infrastructure.config.configureCors
+import com.example.infrastructure.config.DatabaseConfig
 import com.example.presentation.routes.userRoutes
+import com.example.presentation.routes.authRoutes
 import io.ktor.server.netty.EngineMain
 import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationStopped
 import io.ktor.server.application.install
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
@@ -33,14 +37,16 @@ fun Application.module() {
 
     // plugin
     configureSerialization()
+    configureCors()
 
-    // テスト時のみ（インメモリ）
-//     configureDatabase()
+    // DB初期化
+    configureDatabase()
+    FlywayMigration.migrate(DatabaseConfig.default())
 
-    // アプリケーション終了時のクリーンアップ
-//    environment.monitor.subscribe(ApplicationStopped) {
-//        DatabaseFactory.close()
-//    }
+    // 終了時のクリーンアップ
+    environment.monitor.subscribe(ApplicationStopped) {
+        DatabaseFactory.close()
+    }
 
     // routing
     routing {
@@ -50,5 +56,8 @@ fun Application.module() {
 
         // user routes
         userRoutes()
+
+        // auth routes
+        authRoutes()
     }
 }

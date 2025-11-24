@@ -1,6 +1,7 @@
 package com.example.infrastructure.database.repositories
 
 import com.example.domain.models.Email
+import com.example.domain.models.PrivacySetting
 import com.example.domain.models.User
 import com.example.domain.models.UserId
 import com.example.domain.repositories.UserRepository
@@ -40,8 +41,10 @@ class UserRepositoryImpl : UserRepository {
         if (exists) {
             // 更新
             UsersTable.update({ UsersTable.id eq user.id.value }) {
-                it[email] = user.email.value
                 it[name] = user.name
+                it[avatarUrl] = user.avatarUrl
+                it[defaultPrivacySetting] = user.defaultPrivacySetting.name.lowercase()
+                it[lastLoginAt] = user.lastLoginAt
                 it[updatedAt] = user.updatedAt
             }
         } else {
@@ -50,6 +53,9 @@ class UserRepositoryImpl : UserRepository {
                 it[id] = user.id.value
                 it[email] = user.email.value
                 it[name] = user.name
+                it[avatarUrl] = user.avatarUrl
+                it[defaultPrivacySetting] = user.defaultPrivacySetting.name.lowercase()
+                it[lastLoginAt] = user.lastLoginAt
                 it[createdAt] = user.createdAt
                 it[updatedAt] = user.updatedAt
             }
@@ -75,6 +81,9 @@ class UserRepositoryImpl : UserRepository {
             id = UserId.of(row[UsersTable.id]),
             email = Email(row[UsersTable.email]),
             name = row[UsersTable.name],
+            avatarUrl = row[UsersTable.avatarUrl],
+            defaultPrivacySetting = PrivacySetting.fromString(row[UsersTable.defaultPrivacySetting]),
+            lastLoginAt = row[UsersTable.lastLoginAt],
             createdAt = row[UsersTable.createdAt],
             updatedAt = row[UsersTable.updatedAt]
         )

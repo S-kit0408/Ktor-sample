@@ -1,20 +1,21 @@
 package com.example.presentation.controllers
 
-import com.example.application.usecases.*
-import com.example.domain.services.EmailAlreadyExistsException
+import com.example.application.usecases.user.CreateUserUseCase
+import com.example.application.usecases.user.DeleteUserUseCase
+import com.example.application.usecases.user.GetUserUseCase
+import com.example.application.usecases.user.ListUsersUseCase
+import com.example.application.usecases.user.UpdateUserUseCase
 import com.example.presentation.mappers.UserMapper
 import com.example.presentation.models.requests.CreateUserRequest
 import com.example.presentation.models.requests.UpdateUserRequest
 import com.example.presentation.models.responses.ApiResponse
 import com.example.presentation.models.responses.ErrorResponse
-import com.example.presentation.models.responses.UserResponse
+import com.example.common.utils.ErrorHandle
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 
-// ユーザーコントローラー
-// HTTPリクエスト/レスポンスの処理のみを担当
 class UserController(
     private val createUserUseCase: CreateUserUseCase,
     private val getUserUseCase: GetUserUseCase,
@@ -27,44 +28,26 @@ class UserController(
         try {
             val request = call.receive<CreateUserRequest>()
             val dto = UserMapper.toDto(request)
-            val userDto = createUserUseCase.execute(dto)
-            val response = UserMapper.toResponse(userDto)
 
-            call.respond(
-                HttpStatusCode.Created,
-                ApiResponse(
-                    success = true,
-                    data = response,
-                    message = "User created successfully"
-                )
-            )
-        } catch (e: EmailAlreadyExistsException) {
-            call.respond(
-                HttpStatusCode.Conflict,
-                ErrorResponse(
-                    error = "CONFLICT",
-                    message = e.message ?: "Email already exists"
-                )
-            )
-        } catch (e: IllegalArgumentException) {
-            call.respond(
-                HttpStatusCode.BadRequest,
-                ErrorResponse(
-                    error = "BAD_REQUEST",
-                    message = e.message ?: "Invalid input"
-                )
-            )
+            createUserUseCase.execute(dto)
+                .onSuccess { userDto ->
+                    val response = UserMapper.toResponse(userDto)
+                    call.respond(
+                        HttpStatusCode.Created,
+                        ApiResponse(
+                            success = true,
+                            data = response,
+                            message = "User created successfully"
+                        )
+                    )
+                }
+                .onFailure { exception ->
+                    ErrorHandle(call, exception)
+                }
         } catch (e: Exception) {
-            call.respond(
-                HttpStatusCode.InternalServerError,
-                ErrorResponse(
-                    error = "INTERNAL_SERVER_ERROR",
-                    message = "An unexpected error occurred"
-                )
-            )
+            ErrorHandle(call, e)
         }
     }
-
 
     // GET /api/users/{id}
     suspend fun getUser(call: ApplicationCall) {
@@ -78,62 +61,48 @@ class UserController(
                     )
                 )
 
-            val userDto = getUserUseCase.execute(userId)
-            if (userDto == null) {
-                call.respond(
-                    HttpStatusCode.NotFound,
-                    ErrorResponse(
-                        error = "NOT_FOUND",
-                        message = "User not found"
+            getUserUseCase.execute(userId)
+                .onSuccess { userDto ->
+                    val response = UserMapper.toResponse(userDto)
+                    call.respond(
+                        HttpStatusCode.OK,
+                        ApiResponse(
+                            success = true,
+                            data = response
+                        )
                     )
-                )
-            } else {
-                val response = UserMapper.toResponse(userDto)
-                call.respond(
-                    HttpStatusCode.OK,
-                    ApiResponse(
-                        success = true,
-                        data = response
-                    )
-                )
-            }
+                }
+                .onFailure { exception ->
+                    ErrorHandle(call, exception)
+                }
         } catch (e: Exception) {
-            call.respond(
-                HttpStatusCode.InternalServerError,
-                ErrorResponse(
-                    error = "INTERNAL_SERVER_ERROR",
-                    message = "An unexpected error occurred"
-                )
-            )
+            ErrorHandle(call, e)
         }
     }
-
 
     // GET /api/users
     suspend fun listUsers(call: ApplicationCall) {
         try {
-            val userDtos = listUsersUseCase.execute()
-            val responses = UserMapper.toResponseList(userDtos)
-            call.respond(
-                HttpStatusCode.OK,
-                ApiResponse(
-                    success = true,
-                    data = responses
-                )
-            )
+            listUsersUseCase.execute()
+                .onSuccess { userDtos ->
+                    val responses = UserMapper.toResponseList(userDtos)
+                    call.respond(
+                        HttpStatusCode.OK,
+                        ApiResponse(
+                            success = true,
+                            data = responses
+                        )
+                    )
+                }
+                .onFailure { exception ->
+                    ErrorHandle(call, exception)
+                }
         } catch (e: Exception) {
-            call.respond(
-                HttpStatusCode.InternalServerError,
-                ErrorResponse(
-                    error = "INTERNAL_SERVER_ERROR",
-                    message = "An unexpected error occurred"
-                )
-            )
+            ErrorHandle(call, e)
         }
     }
 
-
-     // PUT /api/users/{id}
+    // PUT /api/users/{id}
     suspend fun updateUser(call: ApplicationCall) {
         try {
             val userId = call.parameters["id"]
@@ -147,46 +116,26 @@ class UserController(
 
             val request = call.receive<UpdateUserRequest>()
             val dto = UserMapper.toDto(request)
-            val userDto = updateUserUseCase.execute(userId, dto)
 
-            if (userDto == null) {
-                call.respond(
-                    HttpStatusCode.NotFound,
-                    ErrorResponse(
-                        error = "NOT_FOUND",
-                        message = "User not found"
+            updateUserUseCase.execute(userId, dto)
+                .onSuccess { userDto ->
+                    val response = UserMapper.toResponse(userDto)
+                    call.respond(
+                        HttpStatusCode.OK,
+                        ApiResponse(
+                            success = true,
+                            data = response,
+                            message = "User updated successfully"
+                        )
                     )
-                )
-            } else {
-                val response = UserMapper.toResponse(userDto)
-                call.respond(
-                    HttpStatusCode.OK,
-                    ApiResponse(
-                        success = true,
-                        data = response,
-                        message = "User updated successfully"
-                    )
-                )
-            }
-        } catch (e: IllegalArgumentException) {
-            call.respond(
-                HttpStatusCode.BadRequest,
-                ErrorResponse(
-                    error = "BAD_REQUEST",
-                    message = e.message ?: "Invalid input"
-                )
-            )
+                }
+                .onFailure { exception ->
+                    ErrorHandle(call, exception)
+                }
         } catch (e: Exception) {
-            call.respond(
-                HttpStatusCode.InternalServerError,
-                ErrorResponse(
-                    error = "INTERNAL_SERVER_ERROR",
-                    message = "An unexpected error occurred"
-                )
-            )
+            ErrorHandle(call, e)
         }
     }
-
 
     // DELETE /api/users/{id}
     suspend fun deleteUser(call: ApplicationCall) {
@@ -200,32 +149,21 @@ class UserController(
                     )
                 )
 
-            val deleted = deleteUserUseCase.execute(userId)
-            if (deleted) {
-                call.respond(
-                    HttpStatusCode.OK,
-                    ApiResponse<Unit>(
-                        success = true,
-                        message = "User deleted successfully"
+            deleteUserUseCase.execute(userId)
+                .onSuccess {
+                    call.respond(
+                        HttpStatusCode.OK,
+                        ApiResponse<Unit>(
+                            success = true,
+                            message = "User deleted successfully"
+                        )
                     )
-                )
-            } else {
-                call.respond(
-                    HttpStatusCode.NotFound,
-                    ErrorResponse(
-                        error = "NOT_FOUND",
-                        message = "User not found"
-                    )
-                )
-            }
+                }
+                .onFailure { exception ->
+                    ErrorHandle(call, exception)
+                }
         } catch (e: Exception) {
-            call.respond(
-                HttpStatusCode.InternalServerError,
-                ErrorResponse(
-                    error = "INTERNAL_SERVER_ERROR",
-                    message = "An unexpected error occurred"
-                )
-            )
+            ErrorHandle(call, e)
         }
     }
 }

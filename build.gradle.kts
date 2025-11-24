@@ -27,8 +27,9 @@ dependencies {
     implementation("io.ktor:ktor-serialization-kotlinx-json:$ktor_version")
     implementation("io.ktor:ktor-server-status-pages:$ktor_version")
     implementation("io.ktor:ktor-server-config-yaml:$ktor_version")
-    implementation("io.ktor:ktor-server-cors-jvm:$ktor_version")
+    implementation("io.ktor:ktor-server-cors:$ktor_version")
     implementation("io.github.cdimascio:dotenv-kotlin:6.4.1")
+    implementation("com.github.f4b6a3:ulid-creator:5.2.3")
 
     // Serialization
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
@@ -42,14 +43,17 @@ dependencies {
     implementation("org.postgresql:postgresql:42.7.4")
     implementation("com.zaxxer:HikariCP:6.2.1")
 
+    // Database Migration - Flyway
+    implementation("org.flywaydb:flyway-core:10.21.0")
+    implementation("org.flywaydb:flyway-database-postgresql:10.21.0")
+
     // Dependency Injection
     implementation("io.insert-koin:koin-ktor:4.1.0")
     implementation("io.insert-koin:koin-logger-slf4j:4.1.0")
-//    implementation("io.insert-koin:koin-logger-slf4j:4.0.2")
-//    implementation("io.insert-koin:koin-logger-slf4j:3.5.6")
 
     //Logging
     implementation("ch.qos.logback:logback-classic:$logback_version")
+    implementation("io.ktor:ktor-server-cors:3.3.0")
 
     //Test
     testImplementation("io.ktor:ktor-server-test-host:$ktor_version")

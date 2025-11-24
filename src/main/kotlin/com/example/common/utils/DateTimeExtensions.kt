@@ -6,6 +6,6 @@ import kotlinx.datetime.toLocalDateTime
 
 private val JST = TimeZone.of("Asia/Tokyo")
 
-fun Instant.toIso8601Jst(): String =
+fun Instant.conversionJst(): String =
     this.toLocalDateTime(JST)
         .toString()
