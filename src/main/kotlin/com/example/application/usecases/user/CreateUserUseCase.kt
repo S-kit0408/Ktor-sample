@@ -4,33 +4,30 @@ import com.example.application.dto.CreateUserDto
 import com.example.application.dto.UserDto
 import com.example.domain.models.User
 import com.example.domain.models.PrivacySetting
+import com.example.domain.models.AuthProvider
 import com.example.domain.repositories.UserRepository
-import com.example.domain.services.UserDomainService
 import kotlinx.datetime.Clock
 
 class CreateUserUseCase(
     private val userRepository: UserRepository,
-    private val userDomainService: UserDomainService
 ) {
-    suspend fun execute(dto: CreateUserDto): Result<UserDto> {
-        return try {
-            userDomainService.validateUserName(dto.name)
-            userDomainService.checkEmailDuplicatoin(dto.email)
-
+    suspend fun execute(dto: CreateUserDto, clerkUserId: String): Result<UserDto> {
+        return runCatching {
             val now = Clock.System.now()
+
             val user = User.create(
+                clerkUserId = clerkUserId,
                 email = dto.email,
                 name = dto.name,
                 avatarUrl = dto.avatarUrl,
-                defaultPrivacySetting = dto.defaultPrivacySetting ?: PrivacySetting.PRIVATE,
-                now = now,
+                primaryAuthProvider = AuthProvider.UNKNOWN,
+                defaultPrivacySetting = dto.defaultPrivacySetting
+                    ?: PrivacySetting.PRIVATE,
+                now = now
             )
 
-            val savedUser = userRepository.save(user)
-
-            Result.success(UserDto.from(savedUser))
-        } catch (e: Exception) {
-            Result.failure(e)
+            val createdUser = userRepository.create(user)
+            UserDto.from(createdUser)
         }
     }
 }

@@ -1,37 +1,32 @@
 package com.example.presentation.models.responses
 
-import com.example.application.dto.UserDto
 import kotlinx.serialization.Serializable
-
-
-@Serializable
-data class UserResponse(
-    val id: String,
-    val email: String,
-    val name: String,
-    val createdAt: String,
-    val updatedAt: String
-) {
-    companion object {
-        fun from(dto: UserDto): UserResponse {
-            return UserResponse(
-                id = dto.id,
-                email = dto.email,
-                name = dto.name,
-                createdAt = dto.createdAt.toString(),
-                updatedAt = dto.updatedAt.toString()
-            )
-        }
-    }
-}
-
 
 @Serializable
 data class ApiResponse<T>(
     val success: Boolean,
     val data: T? = null,
-    val message: String? = null
-)
+    val message: String? = null,
+    val error: String? = null
+) {
+    companion object {
+        fun <T> success(data: T, message: String? = null): ApiResponse<T> {
+            return ApiResponse(
+                success = true,
+                data = data,
+                message = message
+            )
+        }
+
+        fun <T> error(message: String, error: String? = null): ApiResponse<T> {
+            return ApiResponse(
+                success = false,
+                message = message,
+                error = error
+            )
+        }
+    }
+}
 
 
 @Serializable

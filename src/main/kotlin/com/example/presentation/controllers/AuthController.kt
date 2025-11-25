@@ -1,168 +1,86 @@
 package com.example.presentation.controllers
 
-import com.example.application.dto.ChangePasswordDto
-import com.example.application.usecases.auth.LoginWithGoogleUseCase
-import com.example.application.usecases.auth.LoginWithPasswordUseCase
-import com.example.application.usecases.auth.RegisterUserWithGoogleUseCase
-import com.example.application.usecases.auth.DeleteAuthCredentialUseCase
-import com.example.application.usecases.user.RegisterUserWithPasswordUseCase
-import com.example.presentation.mappers.AuthMapper
-import com.example.presentation.models.requests.*
+import com.example.application.usecases.auth.GetCurrentUserUseCase
+import com.example.application.usecases.auth.SyncUserFromClerkUseCase
+import com.example.common.utils.ErrorHandle
+import com.example.presentation.mappers.UserMapper
 import com.example.presentation.models.responses.ApiResponse
 import com.example.presentation.models.responses.ErrorResponse
-import com.example.common.utils.ErrorHandle
-import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.ApplicationCall
-import io.ktor.server.request.receive
-import io.ktor.server.response.respond
+import io.ktor.http.*
+import io.ktor.server.application.*
+import io.ktor.server.auth.jwt.*
+import io.ktor.server.auth.principal
+import io.ktor.server.response.*
 
 class AuthController(
-    private val registerUserWithPasswordUseCase: RegisterUserWithPasswordUseCase,
-    private val registerUserWithGoogleUseCase: RegisterUserWithGoogleUseCase,
-    private val loginWithPasswordUseCase: LoginWithPasswordUseCase,
-    private val loginWithGoogleUseCase: LoginWithGoogleUseCase,
-    private val deleteAuthCredentialUseCase: DeleteAuthCredentialUseCase,
+    private val syncUserFromClerkUseCase: SyncUserFromClerkUseCase,
+    private val getCurrentUserUseCase: GetCurrentUserUseCase
 ) {
-    // Post api/auth/register/password
-    suspend fun registerWithPassword(call: ApplicationCall) {
-        try {
-            val request = call.receive<RegisterUserRequest>()
-            val dto = AuthMapper.toRegisterPasswordDto(request)
 
-            registerUserWithPasswordUseCase.execute(dto)
-                .onSuccess { result ->
-                    val response = AuthMapper.toUserWithAuthResponse(result)
-                    call.respond(
-                        HttpStatusCode.Created,
-                        ApiResponse(
-                            success = true,
-                            data = response,
-                            message = "User registered successfully!"
-                        )
-                    )
-                }
-                .onFailure { exception ->
-                    ErrorHandle(call, exception)
-                }
-
-        } catch (e:Exception) {
-            ErrorHandle(call, e)
-        }
+    // Clerk JWTからユーザーIDを取得するヘルパー
+    private fun ApplicationCall.getClerkUserId(): String? {
+        return principal<JWTPrincipal>()?.subject
     }
 
-    // Post /api/auth/register/google
-    suspend fun registerWithGoogle(call: ApplicationCall) {
+    // POST /api/auth/sync
+    suspend fun syncUser(call: ApplicationCall) {
         try {
-            val request = call.receive<RegisterUserRequest>()
-            val dto = AuthMapper.toRegisterGoogleDto(request)
-
-            registerUserWithGoogleUseCase.execute(dto)
-                .onSuccess { result ->
-                    val response = AuthMapper.toUserWithAuthResponse(result)
-                    call.respond(
-                        HttpStatusCode.Created,
-                        ApiResponse(
-                            success = true,
-                            data = response,
-                            message = "User registered successfully!"
-                        )
-                    )
-                }
-                .onFailure { exception ->
-                    ErrorHandle(call, exception)
-                }
-        } catch (e:Exception) {
-            ErrorHandle(call, e)
-        }
-    }
-
-    // POSt /api/auth/login/password
-    suspend fun loginWithPassword(call: ApplicationCall) {
-        try {
-            val request = call.receive<LoginRequest>()
-            val dto = AuthMapper.toLoginPasswordDto(request)
-
-            loginWithPasswordUseCase.execute(dto)
-                .onSuccess { result ->
-                    val response = AuthMapper.toAuthResponse(result)
-                    call.respond(
-                        HttpStatusCode.OK,
-                        ApiResponse(
-                            success = true,
-                            data = response,
-                            message = "User logged in!"
-                        )
-                    )
-                }
-                .onFailure { exception ->
-                    ErrorHandle(call, exception)
-                }
-        } catch (e:Exception) {
-            ErrorHandle(call, e)
-        }
-    }
-
-    // POST api/auth/login/gooogle
-    suspend fun loginWithGoogle(call: ApplicationCall) {
-        try {
-            val request = call.receive<LoginRequest>()
-            val dto = AuthMapper.toLoginGoogleDto(request)
-
-            loginWithGoogleUseCase.execute(dto)
-                .onSuccess { result ->
-                    val response = AuthMapper.toAuthResponse(result)
-                    call.respond(
-                        HttpStatusCode.OK,
-                        ApiResponse(
-                            success = true,
-                            data = response,
-                            message = "User logged in!"
-                        )
-                    )
-                }
-                .onFailure { exception ->
-                    ErrorHandle(call, exception)
-                }
-        } catch (e:Exception) {
-            ErrorHandle(call, e)
-        }
-    }
-
-    // DELETE /api/auth/credentials/{credentialId}
-    suspend fun deleteAuthCredential(call: ApplicationCall) {
-        try {
-            val credentialId = call.parameters["credentialId"]
+            val clerkUserId = call.getClerkUserId()
                 ?: return call.respond(
-                    HttpStatusCode.BadRequest,
+                    HttpStatusCode.Unauthorized,
                     ErrorResponse(
-                        error = "BAD_REQUEST",
-                        message = "User ID is required"
+                        error = "UNAUTHORIZED",
+                        message = "Invalid or missing authentication token"
                     )
                 )
 
-            val userId = call.parameters["userId"]
-                ?: return call.respond(
-                    HttpStatusCode.BadRequest,
-                    ErrorResponse(
-                        error = "BAD_REQUEST",
-                        message = "User ID is required"
-                    )
-                )
-
-            deleteAuthCredentialUseCase.execute(credentialId, userId)
-                .onSuccess { result ->
+            syncUserFromClerkUseCase.execute(clerkUserId)
+                .onSuccess { userDto ->
+                    val response = UserMapper.toResponse(userDto)
                     call.respond(
                         HttpStatusCode.OK,
-                        ApiResponse<Unit>(
+                        ApiResponse(
                             success = true,
-                            message = "Authentication method deleted successfully"
+                            data = response,
+                            message = "User synced successfully"
                         )
                     )
                 }
                 .onFailure { exception ->
                     ErrorHandle(call, exception)
                 }
-        } catch (e:Exception) {
+        } catch (e: Exception) {
+            ErrorHandle(call, e)
+        }
+    }
+
+    // GET /api/auth/me
+    suspend fun getCurrentUser(call: ApplicationCall) {
+        try {
+            val clerkUserId = call.getClerkUserId()
+                ?: return call.respond(
+                    HttpStatusCode.Unauthorized,
+                    ErrorResponse(
+                        error = "UNAUTHORIZED",
+                        message = "Invalid or missing authentication token"
+                    )
+                )
+
+            getCurrentUserUseCase.execute(clerkUserId)
+                .onSuccess { userDto ->
+                    val response = UserMapper.toResponse(userDto)
+                    call.respond(
+                        HttpStatusCode.OK,
+                        ApiResponse(
+                            success = true,
+                            data = response
+                        )
+                    )
+                }
+                .onFailure { exception ->
+                    ErrorHandle(call, exception)
+                }
+        } catch (e: Exception) {
             ErrorHandle(call, e)
         }
     }

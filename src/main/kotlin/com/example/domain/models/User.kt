@@ -5,9 +5,11 @@ import com.github.f4b6a3.ulid.UlidCreator
 
 data class User(
     val id: UserId,
+    val clerkUserId: String,
     val email: Email,
     val name: String,
     val avatarUrl: String?,
+    val primaryAuthProvider: AuthProvider,
     val defaultPrivacySetting: PrivacySetting,
     val lastLoginAt : Instant?,
     val createdAt: Instant,
@@ -41,22 +43,39 @@ data class User(
 
     companion object {
         fun create(
+            clerkUserId: String,
             email: String,
             name: String,
             avatarUrl: String? = null,
+            primaryAuthProvider: AuthProvider = AuthProvider.UNKNOWN,
             defaultPrivacySetting: PrivacySetting = PrivacySetting.PRIVATE,
             now: Instant
         ): User {
             return User(
                 id = UserId.generate(),
+                clerkUserId = clerkUserId,
                 email = Email(email),
                 name = name,
                 avatarUrl = avatarUrl,
+                primaryAuthProvider = primaryAuthProvider,
                 defaultPrivacySetting = defaultPrivacySetting,
                 lastLoginAt = null,
                 createdAt = now,
                 updatedAt = now
             )
+        }
+    }
+}
+
+
+enum class AuthProvider {
+    EMAIL,
+    GOOGLE,
+    UNKNOWN;
+
+    companion object {
+        fun fromString(value: String): AuthProvider {
+            return valueOf(value.uppercase())
         }
     }
 }

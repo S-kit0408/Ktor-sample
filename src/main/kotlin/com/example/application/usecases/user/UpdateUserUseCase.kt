@@ -1,42 +1,34 @@
 package com.example.application.usecases.user
 
 import com.example.domain.repositories.UserRepository
-import com.example.domain.services.UserDomainService
-import com.example.domain.models.UserId
 import com.example.application.dto.UpdateUserDto
 import com.example.application.dto.UserDto
-import kotlinx.datetime.Clock
 
 class UpdateUserUseCase (
     private val userRepository: UserRepository,
-    private val userDomainService: UserDomainService
 ) {
     suspend fun execute(userId: String, dto: UpdateUserDto): Result<UserDto> {
-        return try {
-            val userIdObj = UserId.of(userId)
+        return runCatching {
+            val user = userRepository.findById(userId)
+                ?: throw IllegalArgumentException("User not found")
 
-            var user = userRepository.findById(userIdObj)
-                ?: return Result.failure(IllegalArgumentException("User not found"))
+            var updatedUser = user
 
-            dto.name?.let { newName ->
-                userDomainService.validateUserName(newName)
-                user = user.updateName(newName)
+            dto.name?.let {
+//                userDomainService.validateUserName(newName)
+                updatedUser = updatedUser.updateName(it)
             }
 
-            dto.avatarUrl?.let { newAvatarUrl ->
-                user = user.updateAvatarUrl(newAvatarUrl)
+            dto.avatarUrl?.let {
+                updatedUser = updatedUser.updateAvatarUrl(it)
             }
 
-            dto.defaultPrivacySetting?.let { newSetting ->
-                user = user.updatePrivacySetting(newSetting)
+            dto.defaultPrivacySetting?.let {
+                updatedUser = updatedUser.updatePrivacySetting(it)
             }
 
-            val savedUser = userRepository.save(user)
-
-            Result.success(UserDto.from(savedUser))
-
-        } catch (e: Exception) {
-            Result.failure(e)
+            val savedUser = userRepository.update(updatedUser)
+            UserDto.from(savedUser)
         }
     }
 }

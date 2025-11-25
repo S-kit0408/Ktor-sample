@@ -8,14 +8,11 @@ class GetUserUseCase (
     private val userRepository: UserRepository
 ) {
     suspend fun execute(userId: String): Result<UserDto> {
-        return try {
-            val user = userRepository.findById(UserId.Companion.of(userId))
+        return runCatching {
+            val user = userRepository.findById(userId)
+                ?: throw NoSuchElementException("User not found with id: $userId")
 
-            if (user == null) return Result.failure(IllegalArgumentException("User not found"))
-
-            Result.success(UserDto.from(user))
-        } catch (e: Exception) {
-            Result.failure(e)
+            UserDto.from(user)
         }
     }
 }

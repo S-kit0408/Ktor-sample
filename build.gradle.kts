@@ -30,6 +30,7 @@ dependencies {
     implementation("io.ktor:ktor-server-cors:$ktor_version")
     implementation("io.github.cdimascio:dotenv-kotlin:6.4.1")
     implementation("com.github.f4b6a3:ulid-creator:5.2.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.6.0")
 
     // Serialization
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
@@ -39,6 +40,7 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-core:0.60.0")
     implementation("org.jetbrains.exposed:exposed-dao:0.60.0")
     implementation("org.jetbrains.exposed:exposed-jdbc:0.60.0")
+    implementation("org.jetbrains.exposed:exposed-java-time:0.60.0")
     implementation("org.jetbrains.exposed:exposed-kotlin-datetime:0.60.0")
     implementation("org.postgresql:postgresql:42.7.4")
     implementation("com.zaxxer:HikariCP:6.2.1")
@@ -54,6 +56,16 @@ dependencies {
     //Logging
     implementation("ch.qos.logback:logback-classic:$logback_version")
     implementation("io.ktor:ktor-server-cors:3.3.0")
+
+    // JWT認証
+    implementation("io.ktor:ktor-server-auth:$ktor_version")
+    implementation("io.ktor:ktor-server-auth-jwt:$ktor_version")
+    implementation("com.auth0:java-jwt:4.4.0")
+
+    // HTTP Client (Clerk API呼び出し用)
+    implementation("io.ktor:ktor-client-core:$ktor_version")
+    implementation("io.ktor:ktor-client-cio:$ktor_version")
+    implementation("io.ktor:ktor-client-content-negotiation:$ktor_version")
 
     //Test
     testImplementation("io.ktor:ktor-server-test-host:$ktor_version")

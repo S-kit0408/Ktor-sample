@@ -13,6 +13,8 @@ import com.example.presentation.models.responses.ErrorResponse
 import com.example.common.utils.ErrorHandle
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
+import io.ktor.server.auth.jwt.JWTPrincipal
+import io.ktor.server.auth.principal
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 
@@ -23,13 +25,28 @@ class UserController(
     private val updateUserUseCase: UpdateUserUseCase,
     private val deleteUserUseCase: DeleteUserUseCase
 ) {
+
+    // Clerk JWTからユーザーIDを取得する
+    private fun ApplicationCall.getClerkUserId(): String? {
+        return principal<JWTPrincipal>()?.subject
+    }
+
     // POST /api/users
     suspend fun createUser(call: ApplicationCall) {
         try {
+            val clerkUserId = call.getClerkUserId()
+                ?: return call.respond(
+                    HttpStatusCode.Unauthorized,
+                    ErrorResponse(
+                        error = "UNAUTHORIZED",
+                        message = "Invalid or missing authentication token"
+                    )
+                )
+
             val request = call.receive<CreateUserRequest>()
             val dto = UserMapper.toDto(request)
 
-            createUserUseCase.execute(dto)
+            createUserUseCase.execute(dto, clerkUserId)
                 .onSuccess { userDto ->
                     val response = UserMapper.toResponse(userDto)
                     call.respond(
